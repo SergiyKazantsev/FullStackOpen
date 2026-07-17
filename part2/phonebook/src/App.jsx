@@ -1,6 +1,28 @@
 import {useState, useEffect} from 'react'
 import personsService from './PersonsService.jsx'
 
+const Notification = ({message, color}) => {
+    if (message === null) {
+        return null
+    }
+
+    let notificationStyle = {
+        background: 'lightgrey',
+        fontSize: '20px',
+        borderStyle: 'solid',
+        borderRadius: '5px',
+        padding: '10px',
+        marginBottom: '10px'
+    }
+    notificationStyle = {...notificationStyle, color: color}
+
+    return (
+        <div style={notificationStyle}>
+            {message}
+        </div>
+    )
+}
+
 const Filter = ({filter, setNewFilter}) => {
     const handleFilterChange = (event) => {
         setNewFilter(event.target.value)
@@ -55,6 +77,8 @@ const App = () => {
     const [newName, setNewName] = useState('')
     const [newNumber, setNewNumber] = useState('')
     const [filter, setNewFilter] = useState('')
+    const [message, setMessage] = useState(null)
+    const [color, setColor] = useState(null)
 
     useEffect(() => {
         personsService.getAllPersons().then(newPersons => setPersons(newPersons))
@@ -79,12 +103,43 @@ const App = () => {
                     returnedPerson => {
                         const newPersons = persons.filter(person => person.id !== returnedPerson.id)
                         setPersons(newPersons.concat(returnedPerson))
+
+                        setMessage(`${returnedPerson.name}'s number has been updated to ${returnedPerson.number}`)
+                        setColor('green')
+                        setTimeout(() => {
+                            setMessage(null)
+                            setColor(null)
+                        }, 5000)
                     }
-                )
+                ).catch(error => {
+                    setMessage(`${personObject.name} was deleted from the database`)
+                    setColor('red')
+                    setTimeout(() => {
+                        setMessage(null)
+                        setColor(null)
+                    }, 5000)
+                })
                 return
             }
         }
-        personsService.createPerson(personObject).then(returnedPerson => setPersons(persons.concat(returnedPerson)))
+        personsService.createPerson(personObject).then(returnedPerson => {
+            setPersons(persons.concat(returnedPerson))
+
+            setMessage(`Added ${returnedPerson.name}`)
+            setColor('green')
+            setTimeout(() => {
+                setMessage(null)
+                setColor(null)
+            }, 5000)
+        }).catch(error => {
+            setMessage(`${personObject.name} was deleted from the database`)
+            setColor('red')
+            setTimeout(() => {
+                setMessage(null)
+                setColor(null)
+            }, 5000)
+        })
+
         setNewName('')
         setNewNumber('')
     }
@@ -92,7 +147,21 @@ const App = () => {
     const onDelete = (name) => {
         const personObject = persons.find(person => person.name === name)
         if (window.confirm(`Delete ${personObject.name}?`)) {
-            personsService.deletePerson(personObject)
+            personsService.deletePerson(personObject).then(() => {
+                setMessage(`Deleted ${personObject.name}`)
+                setColor('green')
+                setTimeout(() => {
+                    setMessage(null)
+                    setColor(null)
+                }, 5000)
+            }).catch(error => {
+                setMessage(`${personObject.name} was deleted from the database`)
+                setColor('red')
+                setTimeout(() => {
+                    setMessage(null)
+                    setColor(null)
+                }, 5000)
+            })
 
         }
         setPersons(persons.filter(person => person.name !== name))
@@ -105,6 +174,7 @@ const App = () => {
             <h3>Add a new</h3>
             <PersonForm newName={newName} setNewName={setNewName} newNumber={newNumber}
                         setNewNumber={setNewNumber} addName={addName}/>
+            <Notification message={message} color={color}/>
             <h2>Numbers</h2>
             <Persons persons={persons} filter={filter} onDelete={onDelete}/>
         </div>
